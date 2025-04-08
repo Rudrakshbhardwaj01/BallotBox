@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BallotBox - Voting Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <!-- Navbar -->
+    <header class="bg-gradient-to-r from-blue-700 to-purple-600 text-white p-5 shadow-md">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-3xl font-extrabold tracking-wide">BallotBox</h1>
+            <nav>
+                <ul class="flex space-x-4 text-lg">
+                    <li><a href="#" class="hover:underline">Home</a></li>
+                    <li><a href="#" class="hover:underline">Results</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="text-center py-16 bg-gradient-to-br from-gray-800 to-gray-900">
+        <h2 class="text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            Your Vote, Your Future
+        </h2>
+        <p class="text-lg mt-3 text-gray-400">Be a responsible citizen. Cast your vote now!</p>
+        <button onclick="fetchCandidates()" class="mt-6 px-8 py-3 text-lg font-semibold bg-blue-600 hover:bg-blue-700 transition-all duration-300 rounded-full shadow-lg">
+            Load Candidates
+        </button>
+    </section>
+
+    <!-- Candidates Section -->
+    <section class="container mx-auto py-14">
+        <h2 class="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            Candidates
+        </h2>
+        <div id="loading" class="hidden text-center mt-8">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+            <p class="mt-2 text-gray-400">Loading candidates...</p>
+        </div>
+        <div id="error-message" class="hidden text-center mt-8 text-red-500"></div>
+        <div id="candidates-list" class="grid md:grid-cols-3 gap-8 mt-8 justify-evenly text-center">
+            <!-- Candidates will be dynamically added here -->
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results-section" class="container mx-auto py-14 hidden">
+        <h2 class="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
+            Voting Results
+        </h2>
+        <div id="results-list" class="grid md:grid-cols-2 gap-8 mt-8 justify-evenly text-center">
+            <!-- Results will be dynamically added here -->
+        </div>
+    </section>
+
+    <!-- Register Candidate Form -->
+    <section class="container mx-auto text-center mt-16">
+        <h2 class="text-3xl font-bold text-blue-400">Register as a Candidate</h2>
+        <form id="register-form" class="mt-6 max-w-lg mx-auto bg-white/10 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/20">
+            <input type="text" id="candidate-name" placeholder="Candidate Name" class="w-full px-4 py-2 text-gray-900 rounded-md focus:ring focus:ring-blue-500 mb-3">
+            <input type="text" id="candidate-party" placeholder="Party Name" class="w-full px-4 py-2 text-gray-900 rounded-md focus:ring focus:ring-blue-500 mb-3">
+            <button type="submit" class="w-full px-6 py-3 bg-green-500 hover:bg-green-600 text-lg font-semibold rounded-full">
+                Register Candidate
+            </button>
+        </form>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gradient-to-r from-blue-700 to-purple-600 text-white text-center py-5 mt-16">
+        <p>&copy; 2025 BallotBox. All rights reserved.</p>
+    </footer>
+
+    <script>
+        // Function to show loading state
+        function showLoading() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('error-message').classList.add('hidden');
+        }
+
+        // Function to hide loading state
+        function hideLoading() {
+            document.getElementById('loading').classList.add('hidden');
+        }
+
+        // Function to show error message
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = message;
+            errorElement.classList.remove('hidden');
+        }
+
+        // Function to show success message
+        function showSuccess(message) {
+            const successElement = document.createElement('div');
+            successElement.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            successElement.textContent = message;
+            document.body.appendChild(successElement);
+            setTimeout(() => {
+                successElement.remove();
+            }, 3000);
+        }
+
+        // Function to check if server is running
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('http://localhost:3000/list-candidates');
+                return response.ok;
+            } catch (error) {
+                return false;
+            }
+        }
+
+        // Function to fetch and display candidates
+        async function fetchCandidates() {
+            showLoading();
+            try {
+                const isServerRunning = await checkServerStatus();
+                if (!isServerRunning) {
+                    throw new Error('Server is not running. Please start the server first.');
+                }
+
+                const response = await fetch('http://localhost:3000/list-candidates');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const candidates = await response.json();
+                displayCandidates(candidates);
+            } catch (error) {
+                console.error('Error fetching candidates:', error);
+                showError(error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Function to display candidates in the UI
+        function displayCandidates(candidates) {
+            const candidatesList = document.getElementById('candidates-list');
+            candidatesList.innerHTML = '';
+
+            if (candidates.length === 0) {
+                candidatesList.innerHTML = '<p class="text-gray-400 col-span-3">No candidates available. Register a new candidate to get started!</p>';
+                return;
+            }
+
+            candidates.forEach(candidate => {
+                const candidateCard = document.createElement('div');
+                candidateCard.className = 'bg-white/10 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/20 hover:scale-105 transition-transform duration-300';
+                candidateCard.innerHTML = `
+                    <h3 class="text-2xl font-bold text-blue-400">${candidate.name}</h3>
+                    <p class="text-gray-400 mt-2">Party: ${candidate.party}</p>
+                    <p class="text-gray-400 mt-2">Votes: <span class="font-bold">${candidate.votes}</span></p>
+                    <button onclick="voteForCandidate(${candidate.id})" 
+                            class="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-all duration-300">
+                        Vote Now
+                    </button>
+                `;
+                candidatesList.appendChild(candidateCard);
+            });
+        }
+
+        // Function to vote for a candidate
+        async function voteForCandidate(candidateId) {
+            try {
+                const response = await fetch(`http://localhost:3000/vote-for/${candidateId}`, {
+                    method: 'POST'
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                showSuccess(data.message);
+                fetchCandidates(); // Refresh the candidates list
+            } catch (error) {
+                console.error('Error voting:', error);
+                showError('Failed to cast vote. Please try again.');
+            }
+        }
+
+        // Handle candidate registration form submission
+        document.getElementById('register-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('candidate-name').value.trim();
+            const party = document.getElementById('candidate-party').value.trim();
+
+            if (!name || !party) {
+                showError('Please fill in all fields');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/register-candidate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, party })
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                showSuccess(data.message);
+                document.getElementById('register-form').reset();
+                fetchCandidates(); // Refresh the candidates list
+            } catch (error) {
+                console.error('Error registering candidate:', error);
+                showError('Failed to register candidate. Please try again.');
+            }
+        });
+
+        // Load candidates when the page loads
+        document.addEventListener('DOMContentLoaded', async () => {
+            const isServerRunning = await checkServerStatus();
+            if (!isServerRunning) {
+                showError('Server is not running. Please start the server first.');
+            } else {
+                fetchCandidates();
+            }
+        });
+
+        // Function to display results
+        function displayResults(candidates) {
+            const resultsList = document.getElementById('results-list');
+            resultsList.innerHTML = '';
+
+            // Sort candidates by votes in descending order
+            const sortedCandidates = [...candidates].sort((a, b) => b.votes - a.votes);
+
+            sortedCandidates.forEach((candidate, index) => {
+                const resultCard = document.createElement('div');
+                resultCard.className = 'bg-white/10 p-6 rounded-xl shadow-lg backdrop-blur-md border border-white/20';
+                resultCard.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-2xl font-bold text-blue-400">${candidate.name}</h3>
+                        <span class="text-yellow-400 font-bold">#${index + 1}</span>
+                    </div>
+                    <p class="text-gray-400 mt-2">Party: ${candidate.party}</p>
+                    <div class="mt-4">
+                        <div class="w-full bg-gray-700 rounded-full h-4">
+                            <div class="bg-blue-600 h-4 rounded-full" style="width: ${(candidate.votes / Math.max(...candidates.map(c => c.votes))) * 100}%"></div>
+                        </div>
+                        <p class="text-gray-400 mt-2">Votes: <span class="font-bold">${candidate.votes}</span></p>
+                    </div>
+                `;
+                resultsList.appendChild(resultCard);
+            });
+        }
+
+        // Function to toggle results section
+        function toggleResults() {
+            const resultsSection = document.getElementById('results-section');
+            const isHidden = resultsSection.classList.contains('hidden');
+            
+            if (isHidden) {
+                resultsSection.classList.remove('hidden');
+                fetchCandidates().then(candidates => displayResults(candidates));
+            } else {
+                resultsSection.classList.add('hidden');
+            }
+        }
+
+        // Add click handler for Results link
+        document.querySelector('nav ul li:nth-child(2) a').addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleResults();
+        });
+    </script>
+</body>
+</html>
